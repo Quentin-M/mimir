@@ -1,0 +1,48 @@
+target: all,alertmanager,overrides-exporter
+
+blocks_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-blocks
+    access_key_id: mimir
+    secret_access_key: mimirmimir
+    insecure: true
+  tsdb:
+    dir: /data/ingester
+
+memberlist:
+  join_members: [ mimir-1, mimir-2, mimir-3 ]
+
+ruler:
+  rule_path: /data/ruler
+  alertmanager_url: http://127.0.0.1:8080/alertmanager
+  ring:
+    heartbeat_period: 2s
+    heartbeat_timeout: 10s
+
+ruler_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-ruler
+    access_key_id: mimir
+    secret_access_key: mimirmimir
+    insecure: true
+
+alertmanager:
+  data_dir: /data/alertmanager
+  fallback_config_file: /etc/alertmanager-fallback.yaml
+  external_url: http://localhost:9009/alertmanager
+
+alertmanager_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-alertmanager
+    access_key_id: mimir
+    secret_access_key: mimirmimir
+    insecure: true
+
+server:
+  log_level: warn

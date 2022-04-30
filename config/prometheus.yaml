@@ -1,0 +1,57 @@
+global:
+  scrape_interval: 5s
+
+rule_files:
+  - /etc/prometheus/rules.yaml
+
+scrape_configs:
+  - job_name: mimir/mimir
+    static_configs:
+      - targets: ['mimir-1:8080']
+        labels:
+          pod: 'mimir-1'
+          cluster: mimir
+          namespace: mimir
+      - targets: ['mimir-2:8080']
+        labels:
+          pod: 'mimir-2'
+          cluster: mimir
+          namespace: mimir
+      - targets: ['mimir-3:8080']
+        labels:
+          pod: 'mimir-3'
+          cluster: mimir
+          namespace: mimir
+  - job_name: telegraf
+    static_configs:
+      - targets: ['host.docker.internal:3001']
+    metric_relabel_configs:
+      # interrupts_CPU.+: Move CPU# from metric name to label
+      - source_labels: [__name__]
+        regex: 'interrupts_CPU(.+)'
+        replacement: '$1'
+        target_label: cpu
+      - source_labels: [__name__]
+        regex: 'interrupts_CPU(.+)'
+        replacement: 'interrupts'
+        target_label: __name__
+      # soft_interrupts_CPU.+: Move CPU# from metric name to lael
+      - source_labels: [__name__]
+        regex: 'soft_interrupts_CPU(.+)'
+        replacement: '$1'
+        target_label: cpu
+      - source_labels: [__name__]
+        regex: 'soft_interrupts_CPU(.+)'
+        replacement: 'soft_interrupts'
+        target_label: __name__
+      # net_.+: Duplicate metric name to enable rate(regex) instead of broken rate(label_replace(regexp))
+      - source_labels: [__name__]
+        regex: 'net_(.+)'
+        replacement: 'net_$1'
+        target_label: metric
+
+remote_write:
+  - url: http://mimir-lb:3003/api/v1/push
+    headers:
+      X-Scope-OrgID: mimir
+
