@@ -1,0 +1,15 @@
+[Unit]
+Description=%i service with docker compose
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+EnvironmentFile=/etc/environment
+WorkingDirectory=/etc/docker/compose/%i
+ExecStart=/usr/bin/docker-compose up -d --build --remove-orphans
+ExecStop=/usr/bin/docker-compose stop
+
+[Install]
+WantedBy=docker.service

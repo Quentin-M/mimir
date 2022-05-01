@@ -1,16 +1,20 @@
 version: '3.4'
 services:
   mimir-lb:
-    image: nginx:latest
+    image: nginx:1.21.6
+    restart: unless-stopped
     volumes:
       - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - "mimir-1"
       - "mimir-2"
       - "mimir-3"
+    ports:
+      - 3003:3003
 
   mimir-1:
-    image: grafana/mimir:latest
+    image: grafana/mimir:r183-5299284
+    restart: unless-stopped
     command: ["-config.file=/etc/mimir.yaml"]
     hostname: mimir-1
     depends_on:
@@ -18,10 +22,11 @@ services:
     volumes:
       - ./config/mimir.yaml:/etc/mimir.yaml
       - ./config/alertmanager-fallback.yaml:/etc/alertmanager-fallback.yaml
-      - ../mimir_data/mimir-1:/data
+      - ../data/mimir-1:/data
 
   mimir-2:
-    image: grafana/mimir:latest
+    image: grafana/mimir:r183-5299284
+    restart: unless-stopped
     command: ["-config.file=/etc/mimir.yaml"]
     hostname: mimir-2
     depends_on:
@@ -29,10 +34,11 @@ services:
     volumes:
       - ./config/mimir.yaml:/etc/mimir.yaml
       - ./config/alertmanager-fallback.yaml:/etc/alertmanager-fallback.yaml
-      - ../mimir_data/mimir-2:/data
+      - ../data/mimir-2:/data
 
   mimir-3:
-    image: grafana/mimir:latest
+    image: grafana/mimir:r183-5299284
+    restart: unless-stopped
     command: ["-config.file=/etc/mimir.yaml"]
     hostname: mimir-3
     depends_on:
@@ -40,14 +46,16 @@ services:
     volumes:
       - ./config/mimir.yaml:/etc/mimir.yaml
       - ./config/alertmanager-fallback.yaml:/etc/alertmanager-fallback.yaml
-      - ../mimir_data/mimir-3:/data
+      - ../data/mimir-3:/data
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.35.0
+    restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --log.level=error
       - --storage.tsdb.path=/prometheus
+      - --web.listen-address=:3001
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
     volumes:
@@ -59,28 +67,32 @@ services:
       - "mimir-3"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    #ports:
-    #  - 3004:9090
+    ports:
+      - 3001:3001
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2022-04-30T22-23-53Z
+    restart: unless-stopped
     entrypoint: [""]
-    command: ["sh", "-c", "mkdir -p /data/mimir-blocks /data/mimir-ruler /data/mimir-alertmanager && minio server --console-address \":3003\" /data"]
+    command: ["sh", "-c", "mkdir -p /data/mimir-blocks /data/mimir-ruler /data/mimir-alertmanager && minio server --console-address \":3002\" /data"]
     environment:
       - MINIO_ROOT_USER=mimir
       - MINIO_ROOT_PASSWORD=mimirmimir
     volumes:
-      - ../mimir_data/minio:/data
+      - ../data/minio:/data
+    ports: 
+      - 3002:3002
 
   telegraf:
     build:
-      context: .
-      dockerfile: Dockerfile.telegraf
+      context: resources/telegraf/
+      dockerfile: Dockerfile
+    restart: unless-stopped
     hostname: localhost
     privileged: true
     network_mode: host
     pid: host
-    user: telegraf:${TELEGRAF_GROUP:?"Please run as follows 'TELEGRAF_GROUP=$(stat -c '%g' /var/run/docker.sock) docker-compose up"}
+    user: telegraf:${DOCKER_GROUP:?"Please run as follows 'DOCKER_GROUP=$(stat -c '%g' /var/run/docker.sock) docker-compose up"}
     volumes:
       - ./config/telegraf.conf:/etc/telegraf/telegraf.conf:ro
       - /:/hostfs:ro
@@ -97,7 +109,8 @@ services:
       - "prometheus"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:8.5.1-ubuntu
+    restart: unless-stopped
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin

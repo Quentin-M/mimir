@@ -24,7 +24,7 @@ scrape_configs:
           namespace: mimir
   - job_name: telegraf
     static_configs:
-      - targets: ['host.docker.internal:3001']
+      - targets: ['host.docker.internal:3004']
     metric_relabel_configs:
       # interrupts_CPU.+: Move CPU# from metric name to label
       - source_labels: [__name__]

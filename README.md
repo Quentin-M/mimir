@@ -1,54 +1,31 @@
-# Mimir
+# Mimir Demo
 
-Uses weak/default passwords & configs,
+Uses weak/default passwords/configs and root+privileged containers,
 Not suitable for production usage.
 
 ## "Quick" start
 
 ```
-# Startup Vagrant
+# Startup Vagrant (with a few disks to setup a test zfs pool for shiny metrics)
 VAGRANT_EXPERIMENTAL=disks vagrant up
-
-# Get inside the VM
-vagrant ssh
-
-# (Optional) Setup a ZFS pool
-sudo apt update && sudo apt install -y zfsutils-linux
-sudo zpool create data mirror /dev/sdc /dev/sdd
-sudo zfs set mountpoint=/data data
-sudo zpool add data cache /dev/sde
-
-# Startup the mimir/telegraf/grafana/prometheus stack
-sudo apt install -y docker-compose
-cd /home/ubuntu/mimir
-sudo TELEGRAF_GROUP=$(stat -c '%g' /var/run/docker.sock) docker-compose up
-```
+``
 
 Head over to [Grafana](http://192.168.60.3:3000/d/pxB0sL6iz/system?orgId=1&refresh=1m) and cry in Chrome. Some of the metrics will take some time to populate (e.g. Internet / DNS latency).
 
-## Ports
+## Other services
 
-- Grafana: 3000 (host)
-- Telegraf: 3001 (host)
-- Prometheus: 3004 (host, disabled by default)
-- Minio (console): 3002
-- Mimir (lb): 3003
+See resources/vagrant/provision.sh to open the ports to access the following services:
+- [Prometheus](http://192.168.60.3:3001/targets)
+- [Minio (console)](http://192.168.60.3:3002/)
+- [Mimir (load balancer)](http://192.168.60.3:3003/)
 
-## Scrape interval
+## Collection/Scrape interval
 
-It appears in three places:
-- telegraf (as the collection interval),
-- prometheus
-- grafana's datasource
+It is pre-configured to 5 seconds, and appears in three places:
+- config/telegraf.config
+- config/prometheus.yaml
+- config/grafana-dashboards.yaml
 
-## Grafana provisioning
-
-Restarting Grafana is not enough to have it reload saved dashboards,
-Must delete the container to clear the already provisioned data.
-
-```
-docker kill mimir_grafana_1 && docker rm mimir_grafana_1 && TELEGRAF_GROUP=$(stat -c '%g' /var/run/docker.sock) docker-compose up -d
-```
 ## TODO
 - Configure retention
 
