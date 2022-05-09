@@ -1,0 +1,53 @@
+version: '3.4'
+services:
+  telegraf:
+    build:
+      context: resources/telegraf/
+      dockerfile: Dockerfile
+    hostname: ${HOSTNAME:?"Please run as follows 'DOCKER_GROUP=$(stat -c '%g' /var/run/docker.sock) HOSTNAME=$(hostname) docker-compose up"}
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    pid: host
+    user: telegraf:${DOCKER_GROUP:?"Please run as follows 'DOCKER_GROUP=$(stat -c '%g' /var/run/docker.sock) HOSTNAME=$(hostname) docker-compose up"}
+    volumes:
+      - ./config/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /:/hostfs:ro
+      - /run/udev:/run/udev:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - HOST_ETC=/hostfs/etc
+      - HOST_PROC=/hostfs/proc
+      - HOST_SYS=/hostfs/sys
+      - HOST_VAR=/hostfs/var
+      - HOST_RUN=/hostfs/run
+      - HOST_MOUNT_PREFIX=/hostfs
+
+  prometheus:
+    image: prom/prometheus:v2.35.0
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --log.level=error
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+      - --web.listen-address=:3005
+    volumes:
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus-rules.yaml:/etc/prometheus/rules.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  promtail:
+    image: grafana/promtail:2.5.0
+    hostname: ${HOSTNAME:?"Please run as follows 'DOCKER_GROUP=$(stat -c '%g' /var/run/docker.sock) HOSTNAME=$(hostname) docker-compose up"}
+    restart: unless-stopped
+    network_mode: host
+    command: -config.file=/etc/promtail/promtail.yaml -config.expand-env
+    volumes:
+      - ./config/promtail.yaml:/etc/promtail/promtail.yaml
+      - /etc/machine-id:/etc/machine-id
+      - /var/log:/var/log
+      - /run/log:/run/log

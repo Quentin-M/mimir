@@ -1,0 +1,60 @@
+target: all,alertmanager,overrides-exporter
+multitenancy_enabled: false
+
+blocks_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-blocks
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    insecure: true
+  tsdb:
+    dir: /data/ingester
+
+ingester:
+  ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+ruler:
+  rule_path: /data/ruler
+  alertmanager_url: http://127.0.0.1:8080/mimir/alertmanager
+  ring:
+    kvstore:
+      store: inmemory
+
+ruler_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-ruler
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    insecure: true
+
+alertmanager:
+  data_dir: /data/alertmanager
+  fallback_config_file: /etc/alertmanager-fallback.yaml
+  external_url: http://localhost:3000/mimir/alertmanager
+  sharding_ring:
+    kvstore:
+      store: inmemory
+
+alertmanager_storage:
+  backend: s3
+  s3:
+    endpoint: minio:9000
+    bucket_name: mimir-alertmanager
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    insecure: true
+
+server:
+  http_path_prefix: /mimir
+  log_level: warn
+
+limits:
+  compactor_blocks_retention_period: 744h
+  max_label_names_per_series: 40

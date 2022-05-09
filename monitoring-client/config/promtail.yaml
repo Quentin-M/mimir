@@ -1,0 +1,33 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /var/log/.promtail-positions.yaml
+
+clients:
+  - url: http://localhost:3000/loki/loki/api/v1/push
+    basic_auth:
+      username: loki
+      password: loki
+
+scrape_configs:
+  - job_name: journal
+    journal:
+      json: false
+      max_age: 12h
+      path: /var/log/journal
+      labels:
+        hostname: ${HOSTNAME}
+        job: systemd-journal
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+  - job_name: var-log
+    static_configs:
+    - targets:
+      - localhost
+      labels:
+        hostname: ${HOSTNAME}
+        job: var-log
+        __path__: /var/log/**/*.log

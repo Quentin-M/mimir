@@ -6,10 +6,10 @@ After=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=true
-EnvironmentFile=/etc/environment
 WorkingDirectory=/etc/docker/compose/%i
-ExecStart=/usr/bin/docker-compose up -d --build --remove-orphans
-ExecStop=/usr/bin/docker-compose stop
+ExecStartPre=-/usr/bin/bash ./systemd-pre.sh
+ExecStart=/usr/bin/bash -c 'readarray -d $'"'"'\\0'"'"' arr < <(find . -name '"'"'docker-compose.*.yml'"'"' -printf '"'"'-f %p\\0'"'"'); eval docker-compose "${arr[@]}" up -d --build --remove-orphans'
+ExecStop=/usr/bin/bash -c 'readarray -d $'"'"'\\0'"'"' arr < <(find . -name '"'"'docker-compose.*.yml'"'"' -printf '"'"'-f %p\\0'"'"'); eval docker-compose "${arr[@]}" stop'
 
 [Install]
 WantedBy=docker.service

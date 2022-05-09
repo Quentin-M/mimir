@@ -16,7 +16,7 @@ Vagrant.configure("2") do |config|
 
     config.ssh.forward_agent = true
     config.vm.provision "shell", path: "resources/vagrant/provision.sh"
-    config.vm.synced_folder ".", "/etc/docker/compose/mimir"
+    config.vm.synced_folder ".", "/etc/docker/compose"
     config.ssh.extra_args = ["-t", "tmux new -A -s tmssh"]
   end
 end

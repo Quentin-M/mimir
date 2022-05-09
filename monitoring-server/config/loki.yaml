@@ -1,0 +1,75 @@
+auth_enabled: false
+
+server: 
+  http_listen_port: 3002
+  grpc_listen_port: 9096
+  http_path_prefix: /loki
+  log_level: warn
+
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 1970-01-01
+      store: boltdb-shipper
+      object_store: aws
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /data/index
+    cache_location: /data/index_cache
+    resync_interval: 5s
+    shared_store: s3
+  aws:
+    bucketnames: loki
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    endpoint: minio:9000
+    insecure: true
+    s3forcepathstyle: true
+
+ruler:
+  enable_api: true
+  alertmanager_url: http://mimir:8080/mimir/alertmanager
+  rule_path: /data/ruler
+  #wal: (avail next version)
+  #  enabled: true
+  #  dir: /data/ruler-wal
+  storage:
+    type: s3
+    s3:
+      bucketnames: loki-ruler
+      access_key_id: minioadmin
+      secret_access_key: minioadmin
+      endpoint: minio:9000
+      insecure: true
+      s3forcepathstyle: true
+  ring:
+    kvstore:
+      store: inmemory
+
+ingester:
+  max_transfer_retries: 0
+  wal:
+    enabled: true
+    dir: /data/ingester-wal
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+
+compactor:
+  working_directory: /data/compactor
+  shared_store: s3
+  retention_enabled: true
+
+limits_config:
+  retention_period: 744h

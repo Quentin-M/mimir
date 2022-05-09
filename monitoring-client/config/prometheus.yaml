@@ -5,23 +5,6 @@ rule_files:
   - /etc/prometheus/rules.yaml
 
 scrape_configs:
-  - job_name: mimir/mimir
-    static_configs:
-      - targets: ['mimir-1:8080']
-        labels:
-          pod: 'mimir-1'
-          cluster: mimir
-          namespace: mimir
-      - targets: ['mimir-2:8080']
-        labels:
-          pod: 'mimir-2'
-          cluster: mimir
-          namespace: mimir
-      - targets: ['mimir-3:8080']
-        labels:
-          pod: 'mimir-3'
-          cluster: mimir
-          namespace: mimir
   - job_name: telegraf
     static_configs:
       - targets: ['host.docker.internal:3004']
@@ -51,7 +34,8 @@ scrape_configs:
         target_label: metric
 
 remote_write:
-  - url: http://mimir-lb:3003/api/v1/push
-    headers:
-      X-Scope-OrgID: mimir
+  - url: http://localhost:3000/mimir/api/v1/push
+    basic_auth:
+      username: mimir
+      password: mimir
 
